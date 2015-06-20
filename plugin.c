@@ -17,7 +17,6 @@
  */
 
 #include <rpcd/plugin.h>
-#include <json-c/json.h>
 
 static struct blob_buf buf;
 

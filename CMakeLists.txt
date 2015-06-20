@@ -12,24 +12,22 @@ OPTION(RPCSYS_SUPPORT "rpc-sys plugin support" ON)
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-IF(APPLE)
-  INCLUDE_DIRECTORIES(/opt/local/include)
-  LINK_DIRECTORIES(/opt/local/lib)
-ENDIF()
+INCLUDE_DIRECTORIES(/opt/local/include ../ ../ubus ../uci ../json-c-0.11)
+LINK_DIRECTORIES(/opt/local/lib ../lib )
 
 CHECK_FUNCTION_EXISTS(getspnam HAVE_SHADOW)
 IF(HAVE_SHADOW)
   ADD_DEFINITIONS(-DHAVE_SHADOW)
 ENDIF()
 
-FIND_LIBRARY(json NAMES json-c json)
-FIND_LIBRARY(crypt NAMES crypt)
+#FIND_LIBRARY(json NAMES json-c json)
+#FIND_LIBRARY(crypt NAMES crypt)
 IF(crypt STREQUAL "crypt-NOTFOUND")
   SET(crypt "")
 ENDIF()
 
 ADD_EXECUTABLE(rpcd main.c exec.c session.c uci.c plugin.c)
-TARGET_LINK_LIBRARIES(rpcd ubox ubus uci dl blobmsg_json ${json} ${crypt})
+TARGET_LINK_LIBRARIES(rpcd ubox ubus uci dl blobmsg_json json-c crypt)
 
 SET(PLUGINS "")
 
