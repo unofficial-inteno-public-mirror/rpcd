@@ -20,6 +20,8 @@
 
 static struct blob_buf buf;
 
+#define DEBUG(...) fprintf(stdout, ##__VA_ARGS__)
+
 struct rpc_plugin_lookup_context {
 	uint32_t id;
 	char *name;
@@ -440,10 +442,14 @@ int rpc_plugin_api_init(struct ubus_context *ctx)
 		{
 			snprintf(path, sizeof(path) - 1,
 			         RPC_PLUGIN_DIRECTORY "/%s", e->d_name);
+			
+			char *dot = strrchr(path, '.'); 
+			if(!dot || strcmp(dot, ".so") != 0) continue; 
 
 			if (stat(path, &s) || !S_ISREG(s.st_mode) || !(s.st_mode & S_IXUSR))
 				continue;
-
+			
+			DEBUG("rpcd: loading %s\n", path); 
 			rv |= rpc_plugin_register_exec(ctx, path);
 		}
 
@@ -456,10 +462,16 @@ int rpc_plugin_api_init(struct ubus_context *ctx)
 		{
 			snprintf(path, sizeof(path) - 1,
 			         RPC_LIBRARY_DIRECTORY "/%s", e->d_name);
+			
+			char *dot = strrchr(path, '.');
+			if(!dot || strcmp(dot, ".so") != 0) {
+				continue;
+			} 
 
 			if (stat(path, &s) || !S_ISREG(s.st_mode))
 				continue;
-
+			
+			DEBUG("rpcd: loading %s\n", path); 
 			rv |= rpc_plugin_register_library(ctx, path);
 		}
 
