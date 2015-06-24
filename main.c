@@ -32,6 +32,8 @@
 static struct ubus_context *ctx;
 static bool respawn = false;
 
+#define DEBUG(...) fprintf(stdout, ##__VA_ARGS__)
+
 static void
 handle_signal(int sig)
 {
@@ -90,21 +92,31 @@ int main(int argc, char **argv)
 	if (!ctx) {
 		fprintf(stderr, "Failed to connect to ubus\n");
 		return -1;
+	} else {
+		fprintf(stdout, "rpcd: connected to ubus\n"); 
 	}
 
 	ubus_add_uloop(ctx);
-
+	
+	DEBUG("rpcd: session init\n"); 
 	rpc_session_api_init(ctx);
+	DEBUG("rpcd: uci init\n"); 
 	rpc_uci_api_init(ctx);
+	DEBUG("rpcd: plugin init\n"); 
 	rpc_plugin_api_init(ctx);
 
 	hangup = getenv("RPC_HANGUP");
 
-	if (!hangup || strcmp(hangup, "1"))
+	if (!hangup || strcmp(hangup, "1")){
+		DEBUG("rpcd: purge savedirs\n"); 
 		rpc_uci_purge_savedirs();
-	else
+	}
+	else {
+		DEBUG("rpcd: session thaw\n"); 
 		rpc_session_thaw();
-
+	}
+	
+	fprintf(stdout, "rpcd: started\n"); 
 	uloop_run();
 
 	rpc_uci_api_destroy(); 
