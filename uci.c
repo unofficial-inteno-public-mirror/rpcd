@@ -1125,13 +1125,26 @@ rpc_uci_trigger_event(struct ubus_context *ctx, const char *config)
 	free(pkg);
 }
 
+static void rpc_ubus_send_change_event(struct ubus_context *ctx, const char *config, struct uci_package *p){
+	struct uci_element *e;
+	
+	blob_buf_init(&buf, 0);
+	blobmsg_add_string(&buf, "config", config); 
+	void *c = blobmsg_open_array(&buf, "changes");
+	uci_foreach_element(&p->saved_delta, e)
+		rpc_uci_dump_change(uci_to_delta(e));
+	blobmsg_close_array(&buf, c);
+	
+	ubus_send_event(ctx, "uci.commit", buf.head); 
+	
+	blob_buf_free(&buf); 
+}
 static int
 rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool commit)
 {
 	struct blob_attr *tb[__RPC_C_MAX];
 	struct uci_package *p = NULL;
 	struct uci_ptr ptr = { 0 };
-	struct uci_element *e;
 	
 	if (apply_sid[0])
 		return UBUS_STATUS_PERMISSION_DENIED;
@@ -1151,17 +1164,7 @@ rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool comm
 	{
 		if (!uci_load(cursor, ptr.package, &p))
 		{
-			blob_buf_init(&buf, 0);
-			blobmsg_add_string(&buf, "config", ptr.package); 
-			void *c = blobmsg_open_array(&buf, "changes");
-			uci_foreach_element(&p->saved_delta, e)
-				rpc_uci_dump_change(uci_to_delta(e));
-			blobmsg_close_array(&buf, c);
-			
-			ubus_send_event(ctx, "uci.commit", buf.head); 
-			
-			blob_buf_free(&buf); 
-			
+			rpc_ubus_send_change_event(ctx, ptr.package, p); 
 			uci_commit(cursor, &p, false);
 			uci_unload(cursor, p);
 			
@@ -1281,6 +1284,7 @@ rpc_uci_apply_config(struct ubus_context *ctx, char *config)
 	struct uci_package *p = NULL;
 
 	if (!uci_load(cursor, config, &p)) {
+		rpc_ubus_send_change_event(ctx, config, p); 
 		uci_commit(cursor, &p, false);
 		uci_unload(cursor, p);
 	}
