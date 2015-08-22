@@ -1121,6 +1121,7 @@ rpc_uci_trigger_event(struct ubus_context *ctx, const char *config)
 		ubus_invoke(ctx, id, "event", b.head, NULL, 0, 1000);
 		blob_buf_free(&b); 
 	}
+	
 	free(pkg);
 }
 
@@ -1130,7 +1131,8 @@ rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool comm
 	struct blob_attr *tb[__RPC_C_MAX];
 	struct uci_package *p = NULL;
 	struct uci_ptr ptr = { 0 };
-
+	struct uci_element *e;
+	
 	if (apply_sid[0])
 		return UBUS_STATUS_PERMISSION_DENIED;
 
@@ -1149,8 +1151,20 @@ rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool comm
 	{
 		if (!uci_load(cursor, ptr.package, &p))
 		{
+			blob_buf_init(&buf, 0);
+			blobmsg_add_string(&buf, "config", ptr.package); 
+			void *c = blobmsg_open_array(&buf, "changes");
+			uci_foreach_element(&p->saved_delta, e)
+				rpc_uci_dump_change(uci_to_delta(e));
+			blobmsg_close_array(&buf, c);
+			
+			ubus_send_event(ctx, "uci.commit", buf.head); 
+			
+			blob_buf_free(&buf); 
+			
 			uci_commit(cursor, &p, false);
 			uci_unload(cursor, p);
+			
 			rpc_uci_trigger_event(ctx, blobmsg_get_string(tb[RPC_C_CONFIG]));
 		}
 	}
@@ -1189,11 +1203,13 @@ rpc_uci_commit(struct ubus_context *ctx, struct ubus_object *obj,
 	int ret = rpc_uci_revert_commit(ctx, msg, true);
 	blob_buf_init(&buf, 0);
 
-	blobmsg_add_u32(&buf, "code", ret);
+	if(ret != 0) blobmsg_add_u32(&buf, "error", ret);
 	
 	ubus_send_reply(ctx, req, buf.head);
 	
 	blob_buf_free(&buf); 
+	
+	
 	return ret; 
 }
 
