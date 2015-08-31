@@ -275,6 +275,12 @@ rpc_uci_format_blob(struct blob_attr *v, const char **p)
 	{
 	case BLOBMSG_TYPE_STRING:
 		*p = blobmsg_data(v);
+//======
+		//if (blobmsg_data_len(v) > 0) 
+	//		*p = blobmsg_data(v);
+	//	else 
+//			*p = ""; 
+//>>>>>>> Fixed a bug with deletion of options in uci
 		break;
 
 	case BLOBMSG_TYPE_INT64:
