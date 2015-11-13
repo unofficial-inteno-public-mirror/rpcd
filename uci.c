@@ -1493,19 +1493,18 @@ rpc_uci_confirm(struct ubus_context *ctx, struct ubus_object *obj,
 
 	sid = blobmsg_data(tb[RPC_B_SESSION]);
 
-	if (!apply_sid[0])
-		return UBUS_STATUS_NO_DATA;
+	if (apply_sid[0]){
+		if (strcmp(apply_sid, sid))
+			return UBUS_STATUS_PERMISSION_DENIED;
 
-	if (strcmp(apply_sid, sid))
-		return UBUS_STATUS_PERMISSION_DENIED;
+		rpc_uci_purge_dir(RPC_SNAPSHOT_FILES);
+		rpc_uci_purge_dir(RPC_SNAPSHOT_DELTA);
 
-	rpc_uci_purge_dir(RPC_SNAPSHOT_FILES);
-	rpc_uci_purge_dir(RPC_SNAPSHOT_DELTA);
+		uloop_timeout_cancel(&apply_timer);
+		memset(apply_sid, 0, sizeof(apply_sid));
+		apply_ctx = NULL;
+	}
 
-	uloop_timeout_cancel(&apply_timer);
-	memset(apply_sid, 0, sizeof(apply_sid));
-	apply_ctx = NULL;
-	
 	// return empty object
 	blob_buf_init(&buf, 0);
 	ubus_send_reply(ctx, req, buf.head);
@@ -1526,24 +1525,23 @@ rpc_uci_rollback(struct ubus_context *ctx, struct ubus_object *obj,
 	blobmsg_parse(rpc_uci_rollback_policy, __RPC_B_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
-	if (!apply_sid[0])
-		return UBUS_STATUS_NO_DATA;
+	if (apply_sid[0]){
+		if (!tb[RPC_B_SESSION])
+			return UBUS_STATUS_INVALID_ARGUMENT;
 
-	if (!tb[RPC_B_SESSION])
-		return UBUS_STATUS_INVALID_ARGUMENT;
+		sid = blobmsg_data(tb[RPC_B_SESSION]);
 
-	sid = blobmsg_data(tb[RPC_B_SESSION]);
+		if (strcmp(apply_sid, sid))
+			return UBUS_STATUS_PERMISSION_DENIED;
 
-	if (strcmp(apply_sid, sid))
-		return UBUS_STATUS_PERMISSION_DENIED;
+		snprintf(tmp, sizeof(tmp), "%s/*", RPC_SNAPSHOT_FILES);
+		if (glob(tmp, GLOB_PERIOD, NULL, &gl) < 0)
+			return UBUS_STATUS_NOT_FOUND;
 
-	snprintf(tmp, sizeof(tmp), "%s/*", RPC_SNAPSHOT_FILES);
-	if (glob(tmp, GLOB_PERIOD, NULL, &gl) < 0)
-		return UBUS_STATUS_NOT_FOUND;
+		rpc_uci_do_rollback(ctx, sid, &gl);
 
-	rpc_uci_do_rollback(ctx, sid, &gl);
-
-	globfree(&gl);
+		globfree(&gl);
+	}
 
 	// return empty object
 	blob_buf_init(&buf, 0);
