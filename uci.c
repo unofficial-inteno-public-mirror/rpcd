@@ -1469,6 +1469,10 @@ rpc_uci_apply(struct ubus_context *ctx, struct ubus_object *obj,
 			apply_ctx = ctx;
 		}
 	}
+	
+	// return empty object
+	blob_buf_init(&buf, 0);
+	ubus_send_reply(ctx, req, buf.head);
 
 	return 0;
 }
@@ -1501,6 +1505,10 @@ rpc_uci_confirm(struct ubus_context *ctx, struct ubus_object *obj,
 	uloop_timeout_cancel(&apply_timer);
 	memset(apply_sid, 0, sizeof(apply_sid));
 	apply_ctx = NULL;
+	
+	// return empty object
+	blob_buf_init(&buf, 0);
+	ubus_send_reply(ctx, req, buf.head);
 
 	return 0;
 }
@@ -1537,6 +1545,10 @@ rpc_uci_rollback(struct ubus_context *ctx, struct ubus_object *obj,
 
 	globfree(&gl);
 
+	// return empty object
+	blob_buf_init(&buf, 0);
+	ubus_send_reply(ctx, req, buf.head);
+
 	return 0;
 }
 
@@ -1552,6 +1564,10 @@ rpc_uci_reload(struct ubus_context *ctx, struct ubus_object *obj,
 		sleep(2);
 		return execv(cmd[0], cmd);
 	}
+
+	// return empty object
+	blob_buf_init(&buf, 0);
+	ubus_send_reply(ctx, req, buf.head);
 
 	return 0;
 }
