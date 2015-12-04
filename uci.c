@@ -274,12 +274,12 @@ rpc_uci_format_blob(struct blob_attr *v, const char **p)
 	switch (blobmsg_type(v))
 	{
 	case BLOBMSG_TYPE_STRING:
-		*p = blobmsg_data(v);
+		//*p = blobmsg_data(v);
 //======
-		//if (blobmsg_data_len(v) > 0) 
-	//		*p = blobmsg_data(v);
-	//	else 
-//			*p = ""; 
+		if (blobmsg_data_len(v) > 0) 
+			*p = blobmsg_data(v);
+		else 
+			*p = ""; 
 //>>>>>>> Fixed a bug with deletion of options in uci
 		break;
 
@@ -632,7 +632,8 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 		return UBUS_STATUS_PERMISSION_DENIED;
 
 	ptr.package = blobmsg_data(tb[RPC_A_CONFIG]);
-
+ 	
+	DEBUG("add t to config: %s\n", ptr.package); 
 	if (uci_load(cursor, ptr.package, &p))
 		return rpc_uci_status();
 
@@ -661,8 +662,10 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 
 	if (tb[RPC_A_VALUES])
 	{
+		DEBUG("Adding values..\n"); 
 		blobmsg_for_each_attr(cur, tb[RPC_A_VALUES], rem)
 		{
+			DEBUG("add name: %s\n", blobmsg_name(cur)); 
 			ptr.o = NULL;
 			ptr.option = blobmsg_name(cur);
 
@@ -672,12 +675,14 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 			switch (blobmsg_type(cur))
 			{
 			case BLOBMSG_TYPE_ARRAY:
+				DEBUG("Adding array..\n"); 
 				blobmsg_for_each_attr(elem, cur, rem2)
 					if (rpc_uci_format_blob(elem, &ptr.value))
 						uci_add_list(cursor, &ptr);
 				break;
 
 			default:
+				DEBUG("adding value\n"); 
 				if (rpc_uci_format_blob(cur, &ptr.value))
 					uci_set(cursor, &ptr);
 				break;
@@ -685,12 +690,16 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 		}
 	}
 
+	DEBUG("add: uci save %p\n", p); 
 	uci_save(cursor, p);
-
-	blob_buf_init(&buf, 0);
-	blobmsg_add_string(&buf, "section", ptr.section);
+	
+	DEBUG("sending reply\n"); 
+	static struct blob_buf b; 
+	memset(&b, 0, sizeof(struct blob_buf)); 
+	blob_buf_init(&b, 0);
+	blobmsg_add_string(&b, "section", ptr.section);
 	ubus_send_reply(ctx, req, buf.head);
-
+	DEBUG("reply sent!\n"); 
 out:
 	DEBUG("add done!\n"); 
 	uci_unload(cursor, p);
