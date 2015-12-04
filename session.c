@@ -34,6 +34,7 @@
 
 #include <rpcd/session.h>
 
+#define DEBUG(...) printf(__VA_ARGS__)
 static struct avl_tree sessions;
 static struct blob_buf buf;
 
@@ -242,6 +243,7 @@ static void
 rpc_session_dump(struct rpc_session *ses, struct ubus_context *ctx,
                  struct ubus_request_data *req)
 {	
+	DEBUG("session.dump"); 
 	blob_buf_init(&buf, 0);
 	rpc_session_to_blob(ses, &buf, true);
 
@@ -359,7 +361,8 @@ rpc_handle_create(struct ubus_context *ctx, struct ubus_object *obj,
 	struct rpc_session *ses;
 	struct blob_attr *tb;
 	int timeout = RPC_DEFAULT_SESSION_TIMEOUT;
-
+	
+	DEBUG("session.create\n"); 
 	blobmsg_parse(new_policy, __RPC_SN_MAX, &tb, blob_data(msg), blob_len(msg));
 	if (tb)
 		timeout = blobmsg_get_u32(tb);
@@ -379,6 +382,7 @@ rpc_handle_list(struct ubus_context *ctx, struct ubus_object *obj,
 	struct rpc_session *ses;
 	struct blob_attr *tb;
 
+	DEBUG("session.list\n"); 
 	blobmsg_parse(sid_policy, __RPC_SI_MAX, &tb, blob_data(msg), blob_len(msg));
 
 	if (!tb) {
@@ -519,6 +523,7 @@ rpc_handle_acl(struct ubus_context *ctx, struct ubus_object *obj,
 	const char *scope = "ubus";
 	int rem1, rem2;
 
+	DEBUG("session.acl\n"); 
 	int (*cb)(struct rpc_session *ses,
 	          const char *scope, const char *object, const char *function);
 
@@ -600,6 +605,8 @@ rpc_handle_access(struct ubus_context *ctx, struct ubus_object *obj,
 	if (!tb[RPC_SP_SID])
 		return UBUS_STATUS_INVALID_ARGUMENT;
 
+	DEBUG("session.access %s\n", blobmsg_data(tb[RPC_SP_SID])); 
+	
 	ses = rpc_session_get(blobmsg_data(tb[RPC_SP_SID]));
 	if (!ses)
 		return UBUS_STATUS_NOT_FOUND;
@@ -659,6 +666,7 @@ rpc_handle_set(struct ubus_context *ctx, struct ubus_object *obj,
 	struct blob_attr *attr;
 	int rem;
 
+	DEBUG("session.set\n"); 
 	blobmsg_parse(set_policy, __RPC_SS_MAX, tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[RPC_SS_SID] || !tb[RPC_SS_VALUES])
@@ -690,6 +698,7 @@ rpc_handle_get(struct ubus_context *ctx, struct ubus_object *obj,
 	void *c;
 	int rem;
 
+	DEBUG("session.get\n"); 
 	blobmsg_parse(get_policy, __RPC_SG_MAX, tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[RPC_SG_SID])
@@ -737,6 +746,7 @@ rpc_handle_unset(struct ubus_context *ctx, struct ubus_object *obj,
 	struct blob_attr *attr;
 	int rem;
 
+	DEBUG("session.unset\n"); 
 	blobmsg_parse(get_policy, __RPC_SG_MAX, tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[RPC_SG_SID])
@@ -775,6 +785,7 @@ rpc_handle_destroy(struct ubus_context *ctx, struct ubus_object *obj,
 	struct rpc_session *ses;
 	struct blob_attr *tb;
 
+	DEBUG("session.destroy\n"); 
 	blobmsg_parse(sid_policy, __RPC_SI_MAX, &tb, blob_data(msg), blob_len(msg));
 
 	if (!tb)
@@ -1101,6 +1112,7 @@ rpc_handle_login(struct ubus_context *ctx, struct ubus_object *obj,
 	int timeout = RPC_DEFAULT_SESSION_TIMEOUT;
 	int rv = 0;
 
+	DEBUG("session.login\n"); 
 	blobmsg_parse(login_policy, __RPC_L_MAX, tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[RPC_L_USERNAME] || !tb[RPC_L_PASSWORD]) {
@@ -1279,6 +1291,7 @@ rpc_session_from_blob(struct uci_context *uci, struct blob_attr *attr)
 int rpc_session_api_init(struct ubus_context *ctx)
 {
 	struct rpc_session *ses;
+	
 
 	static const struct ubus_method session_methods[] = {
 		UBUS_METHOD("create",  rpc_handle_create,  new_policy),

@@ -586,7 +586,6 @@ rpc_uci_getcommon(struct ubus_context *ctx, struct ubus_request_data *req,
 	ubus_send_reply(ctx, req, buf.head);
 
 out:
-	blob_buf_free(&buf); 
 	uci_unload(cursor, p);
 	
 	return rpc_uci_status();
@@ -597,6 +596,7 @@ rpc_uci_get(struct ubus_context *ctx, struct ubus_object *obj,
             struct ubus_request_data *req, const char *method,
             struct blob_attr *msg)
 {
+	DEBUG("uci.get\n"); 
 	return rpc_uci_getcommon(ctx, req, msg, false);
 }
 
@@ -605,6 +605,7 @@ rpc_uci_state(struct ubus_context *ctx, struct ubus_object *obj,
               struct ubus_request_data *req, const char *method,
               struct blob_attr *msg)
 {
+	DEBUG("uci.state\n"); 
 	return rpc_uci_getcommon(ctx, req, msg, true);
 }
 
@@ -613,6 +614,7 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
             struct ubus_request_data *req, const char *method,
             struct blob_attr *msg)
 {
+	DEBUG("uci.add\n"); 
 	struct blob_attr *tb[__RPC_A_MAX];
 	struct blob_attr *cur, *elem;
 	struct uci_package *p = NULL;
@@ -637,7 +639,9 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 	/* add named section */
 	if (tb[RPC_A_NAME])
 	{
+		DEBUG("add named: %s\n", blobmsg_data(tb[RPC_A_NAME])); 
 		ptr.section = blobmsg_data(tb[RPC_A_NAME]);
+		DEBUG("add named type: %s\n", blobmsg_data(tb[RPC_A_TYPE])); 
 		ptr.value   = blobmsg_data(tb[RPC_A_TYPE]);
 		ptr.option  = NULL;
 
@@ -648,6 +652,7 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 	/* add anon section */
 	else
 	{
+		DEBUG("add annon section %s\n", tb[RPC_A_TYPE]); 
 		if (uci_add_section(cursor, p, blobmsg_data(tb[RPC_A_TYPE]), &s) || !s)
 			goto out;
 
@@ -687,9 +692,8 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 	ubus_send_reply(ctx, req, buf.head);
 
 out:
-	blob_buf_free(&buf); 
+	DEBUG("add done!\n"); 
 	uci_unload(cursor, p);
-
 	return rpc_uci_status();
 }
 
@@ -750,6 +754,7 @@ rpc_uci_set(struct ubus_context *ctx, struct ubus_object *obj,
 	struct uci_ptr ptr = { 0 };
 	int rem;
 
+	DEBUG("uci.set\n"); 
 	blobmsg_parse(rpc_uci_set_policy, __RPC_S_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -853,6 +858,7 @@ rpc_uci_delete(struct ubus_context *ctx, struct ubus_object *obj,
 	struct uci_element *e, *tmp;
 	struct uci_ptr ptr = { 0 };
 
+	DEBUG("uci.delete\n"); 
 	blobmsg_parse(rpc_uci_delete_policy, __RPC_D_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -960,6 +966,7 @@ rpc_uci_order(struct ubus_context *ctx, struct ubus_object *obj,
 	struct uci_ptr ptr = { 0 };
 	int rem, i = 1;
 
+	DEBUG("uci.order\n"); 
 	blobmsg_parse(rpc_uci_order_policy, __RPC_O_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -1041,7 +1048,8 @@ rpc_uci_changes(struct ubus_context *ctx, struct ubus_object *obj,
 	char **configs;
 	void *c, *d;
 	int i;
-
+	
+	DEBUG("uci.changes\n"); 
 	blobmsg_parse(rpc_uci_config_policy, __RPC_C_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -1064,7 +1072,6 @@ rpc_uci_changes(struct ubus_context *ctx, struct ubus_object *obj,
 		uci_unload(cursor, p);
 
 		ubus_send_reply(ctx, req, buf.head);
-		blob_buf_free(&buf); 
 
 		return rpc_uci_status();
 	}
@@ -1105,7 +1112,6 @@ rpc_uci_changes(struct ubus_context *ctx, struct ubus_object *obj,
 
 	ubus_send_reply(ctx, req, buf.head);
 	
-	blob_buf_free(&buf); 
 	return 0;
 }
 
@@ -1115,6 +1121,7 @@ rpc_uci_trigger_event(struct ubus_context *ctx, const char *config)
 	char *pkg = strdup(config);
 	static struct blob_buf b;
 	uint32_t id;
+	memset(&b, 0, sizeof(struct blob_buf)); 
 
 	if (!ubus_lookup_id(ctx, "service", &id)) {
 		void *c;
@@ -1143,7 +1150,6 @@ static void rpc_ubus_send_change_event(struct ubus_context *ctx, const char *con
 	
 	ubus_send_event(ctx, "uci.commit", buf.head); 
 	
-	blob_buf_free(&buf); 
 }
 static int
 rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool commit)
@@ -1195,12 +1201,11 @@ rpc_uci_revert(struct ubus_context *ctx, struct ubus_object *obj,
 {
 	int ret = rpc_uci_revert_commit(ctx, msg, false);
 	blob_buf_init(&buf, 0);
-
+	DEBUG("uci.revert\n"); 
 	blobmsg_add_u32(&buf, "code", ret);
 	
 	ubus_send_reply(ctx, req, buf.head);
 	
-	blob_buf_free(&buf); 
 	return ret;
 }
 
@@ -1212,11 +1217,10 @@ rpc_uci_commit(struct ubus_context *ctx, struct ubus_object *obj,
 	int ret = rpc_uci_revert_commit(ctx, msg, true);
 	blob_buf_init(&buf, 0);
 
+	DEBUG("uci.commit\n"); 
 	if(ret != 0) blobmsg_add_u32(&buf, "error", ret);
 	
 	ubus_send_reply(ctx, req, buf.head);
-	
-	blob_buf_free(&buf); 
 	
 	
 	return ret; 
@@ -1231,6 +1235,7 @@ rpc_uci_configs(struct ubus_context *ctx, struct ubus_object *obj,
 	void *c;
 	int i;
 
+	DEBUG("uci.configs\n"); 
 	if (uci_list_configs(cursor, &configs))
 		goto out;
 
@@ -1246,7 +1251,6 @@ rpc_uci_configs(struct ubus_context *ctx, struct ubus_object *obj,
 	ubus_send_reply(ctx, req, buf.head);
 
 out:
-	blob_buf_free(&buf); 
 	free(configs); 
 	return rpc_uci_status();
 }
@@ -1406,6 +1410,7 @@ rpc_uci_apply(struct ubus_context *ctx, struct ubus_object *obj,
 	char *sid;
 	glob_t gl;
 
+	DEBUG("uci.apply\n"); 
 	blobmsg_parse(rpc_uci_apply_policy, __RPC_T_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -1485,6 +1490,7 @@ rpc_uci_confirm(struct ubus_context *ctx, struct ubus_object *obj,
 	struct blob_attr *tb[__RPC_B_MAX];
 	char *sid;
 
+	DEBUG("uci.confirm\n"); 
 	blobmsg_parse(rpc_uci_rollback_policy, __RPC_B_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -1522,6 +1528,7 @@ rpc_uci_rollback(struct ubus_context *ctx, struct ubus_object *obj,
 	glob_t gl;
 	char *sid;
 
+	DEBUG("uci.rollback\n"); 
 	blobmsg_parse(rpc_uci_rollback_policy, __RPC_B_MAX, tb,
 	              blob_data(msg), blob_len(msg));
 
@@ -1557,6 +1564,7 @@ rpc_uci_reload(struct ubus_context *ctx, struct ubus_object *obj,
 {
 	char * const cmd[2] = { "/sbin/reload_config", NULL };
 
+	DEBUG("uci.reload\n"); 
 	if (!fork()) {
 		/* wait for the RPC call to complete */
 		sleep(2);
@@ -1633,6 +1641,8 @@ int rpc_uci_api_init(struct ubus_context *ctx)
 	static struct rpc_session_cb cb = {
 		.cb = rpc_uci_purge_savedir_cb
 	};
+	
+	memset(&buf, 0, sizeof(struct blob_buf)); 
 
 	cursor = uci_alloc_context();
 
@@ -1645,6 +1655,5 @@ int rpc_uci_api_init(struct ubus_context *ctx)
 }
 
 void rpc_uci_api_destroy(void){
-	//blob_buf_free(&buf); 
 	uci_free_context(cursor); 
 }
