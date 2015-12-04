@@ -268,7 +268,7 @@ static bool
 rpc_uci_format_blob(struct blob_attr *v, const char **p)
 {
 	static char buf[21];
-
+	
 	*p = NULL;
 
 	switch (blobmsg_type(v))
@@ -276,10 +276,12 @@ rpc_uci_format_blob(struct blob_attr *v, const char **p)
 	case BLOBMSG_TYPE_STRING:
 		//*p = blobmsg_data(v);
 //======
-		if (blobmsg_data_len(v) > 0) 
+		if (blobmsg_data_len(v) > 0 && strlen(blobmsg_data(v)) > 0)  {
 			*p = blobmsg_data(v);
-		else 
-			*p = ""; 
+			*p = buf; 
+		} else {
+			DEBUG("ERROR: EMPTY VALUE PASSED TO UCI!\n"); 
+		}
 //>>>>>>> Fixed a bug with deletion of options in uci
 		break;
 
@@ -306,7 +308,8 @@ rpc_uci_format_blob(struct blob_attr *v, const char **p)
 	default:
 		break;
 	}
-
+	
+	DEBUG("uci value: %s\n", buf); 
 	return !!*p;
 }
 
@@ -633,7 +636,7 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 
 	ptr.package = blobmsg_data(tb[RPC_A_CONFIG]);
  	
-	DEBUG("add t to config: %s\n", ptr.package); 
+	DEBUG("add to config: %s\n", ptr.package); 
 	if (uci_load(cursor, ptr.package, &p))
 		return rpc_uci_status();
 
