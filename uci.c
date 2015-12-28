@@ -268,48 +268,41 @@ static bool
 rpc_uci_format_blob(struct blob_attr *v, const char **p)
 {
 	static char buf[21];
-	
+
+	memset(buf, 0, sizeof(buf)); 
+
 	*p = NULL;
 
-	switch (blobmsg_type(v))
-	{
-	case BLOBMSG_TYPE_STRING:
-		//*p = blobmsg_data(v);
-//======
-		if (blobmsg_data_len(v) > 0 && strlen(blobmsg_data(v)) > 0)  {
-			*p = blobmsg_data(v);
-			*p = buf; 
-		} else {
-			DEBUG("ERROR: EMPTY VALUE PASSED TO UCI!\n"); 
-		}
-//>>>>>>> Fixed a bug with deletion of options in uci
-		break;
-
-	case BLOBMSG_TYPE_INT64:
-		snprintf(buf, sizeof(buf), "%"PRIu64, blobmsg_get_u64(v));
-		*p = buf;
-		break;
-
-	case BLOBMSG_TYPE_INT32:
-		snprintf(buf, sizeof(buf), "%u", blobmsg_get_u32(v));
-		*p = buf;
-		break;
-
-	case BLOBMSG_TYPE_INT16:
-		snprintf(buf, sizeof(buf), "%u", blobmsg_get_u16(v));
-		*p = buf;
-		break;
-
-	case BLOBMSG_TYPE_INT8:
-		snprintf(buf, sizeof(buf), "%u", !!blobmsg_get_u8(v));
-		*p = buf;
-		break;
-
-	default:
-		break;
+	switch (blobmsg_type(v)){
+		case BLOBMSG_TYPE_STRING:
+			if (blobmsg_data_len(v) > 0 && strlen(blobmsg_data(v)) > 0)  {
+				*p = blobmsg_data(v);
+			} else {
+				DEBUG("ERROR: EMPTY VALUE PASSED TO UCI!\n"); 
+				*p = buf; 
+			}
+			break;
+		case BLOBMSG_TYPE_INT64:
+			snprintf(buf, sizeof(buf), "%"PRIu64, blobmsg_get_u64(v));
+			*p = buf;
+			break;
+		case BLOBMSG_TYPE_INT32:
+			snprintf(buf, sizeof(buf), "%u", blobmsg_get_u32(v));
+			*p = buf;
+			break;
+		case BLOBMSG_TYPE_INT16:
+			snprintf(buf, sizeof(buf), "%u", blobmsg_get_u16(v));
+			*p = buf;
+			break;
+		case BLOBMSG_TYPE_INT8:
+			snprintf(buf, sizeof(buf), "%u", !!blobmsg_get_u8(v));
+			*p = buf;
+			break;
+		default:
+			break;
 	}
 	
-	DEBUG("uci value: %s\n", buf); 
+	//DEBUG("uci value: %s\n", buf); 
 	return !!*p;
 }
 
