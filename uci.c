@@ -694,7 +694,7 @@ rpc_uci_add(struct ubus_context *ctx, struct ubus_object *obj,
 	memset(&b, 0, sizeof(struct blob_buf)); 
 	blob_buf_init(&b, 0);
 	blobmsg_add_string(&b, "section", ptr.section);
-	ubus_send_reply(ctx, req, buf.head);
+	ubus_send_reply(ctx, req, b.head);
 	DEBUG("reply sent!\n"); 
 out:
 	DEBUG("add done!\n"); 
