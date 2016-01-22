@@ -1153,9 +1153,11 @@ static void rpc_ubus_send_change_event(struct ubus_context *ctx, const char *con
 	uci_foreach_element(&p->saved_delta, e)
 		rpc_uci_dump_change(uci_to_delta(e));
 	blobmsg_close_array(&buf, c);
-	
-	ubus_send_event(ctx, "uci.commit", buf.head); 
-	
+
+	// Disable events for now because it causes procd to leak memory upon uci commit (CC seems to have fixed this).  
+	// We are not really using this functionality right now.
+	// TODO: uncomment when this function is needed again
+	//ubus_send_event(ctx, "uci.commit", buf.head); 
 }
 static int
 rpc_uci_revert_commit(struct ubus_context *ctx, struct blob_attr *msg, bool commit)
