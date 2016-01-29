@@ -1137,7 +1137,7 @@ rpc_uci_trigger_event(struct ubus_context *ctx, const char *config)
 		c = blobmsg_open_table(&b, "data");
 		blobmsg_add_string(&b, "package", pkg);
 		blobmsg_close_table(&b, c);
-		//ubus_invoke(ctx, id, "event", b.head, NULL, 0, 1000);
+		ubus_invoke(ctx, id, "event", b.head, NULL, 0, 1000);
 		blob_buf_free(&b); 
 	}
 	
