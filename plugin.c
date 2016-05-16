@@ -326,7 +326,6 @@ rpc_plugin_parse_exec(const char *name, int fd)
 
 	if (asprintf((char **)&obj_type->name, "luci-rpc-plugin-%s", name) < 0)
 		return NULL;
-
 	obj_type->methods = methods;
 	obj_type->n_methods = n_method;
 
@@ -442,6 +441,9 @@ int rpc_plugin_api_init(struct ubus_context *ctx)
 			snprintf(path, sizeof(path) - 1,
 			         RPC_PLUGIN_DIRECTORY "/%s", e->d_name);
 
+			char *dot = strrchr(path, '.');
+			if(!dot || strcmp(dot, ".so") != 0) continue;
+
 			if (stat(path, &s) || !S_ISREG(s.st_mode) || !(s.st_mode & S_IXUSR))
 				continue;
 
@@ -457,6 +459,11 @@ int rpc_plugin_api_init(struct ubus_context *ctx)
 		{
 			snprintf(path, sizeof(path) - 1,
 			         RPC_LIBRARY_DIRECTORY "/%s", e->d_name);
+
+			char *dot = strrchr(path, '.');
+			if(!dot || strcmp(dot, ".so") != 0) {
+				continue;
+			}
 
 			if (stat(path, &s) || !S_ISREG(s.st_mode))
 				continue;
