@@ -91,6 +91,7 @@ static const struct blobmsg_policy rpc_file_rb_policy[__RPC_F_RB_MAX] = {
 };
 
 enum {
+	RPC_F_RW_APPEND,
 	RPC_F_RW_PATH,
 	RPC_F_RW_DATA,
 	RPC_F_RW_MODE,
@@ -99,6 +100,7 @@ enum {
 };
 
 static const struct blobmsg_policy rpc_file_rw_policy[__RPC_F_RW_MAX] = {
+	[RPC_F_RW_APPEND] = { .name = "append", .type = BLOBMSG_TYPE_BOOL	},
 	[RPC_F_RW_PATH]   = { .name = "path",   .type = BLOBMSG_TYPE_STRING },
 	[RPC_F_RW_DATA]   = { .name = "data",   .type = BLOBMSG_TYPE_STRING },
 	[RPC_F_RW_MODE]   = { .name = "mode",   .type = BLOBMSG_TYPE_INT32  },
@@ -266,7 +268,7 @@ rpc_file_write(struct ubus_context *ctx, struct ubus_object *obj,
 {
 	struct blob_attr *tb[__RPC_F_RW_MAX];
 	mode_t prev_mode, mode = 0666;
-	int fd, rv = 0;
+	int fd, open_mode, rv = 0;
 	void *data = NULL;
 	size_t data_len = 0;
 
@@ -278,12 +280,16 @@ rpc_file_write(struct ubus_context *ctx, struct ubus_object *obj,
 
 	data = blobmsg_data(tb[RPC_F_RW_DATA]);
 	data_len = blobmsg_data_len(tb[RPC_F_RW_DATA]) - 1;
+	if (tb[RPC_F_RW_APPEND] && blobmsg_get_bool(tb[RPC_F_RW_APPEND]))
+		open_mode = O_CREAT | O_WRONLY | O_APPEND;
+	else
+		open_mode = O_CREAT | O_WRONLY | O_TRUNC;
 
 	if (tb[RPC_F_RW_MODE])
 		mode = blobmsg_get_u32(tb[RPC_F_RW_MODE]);
 
 	prev_mode = umask(0);
-	fd = open(blobmsg_data(tb[RPC_F_RW_PATH]), O_CREAT | O_WRONLY | O_TRUNC, mode);
+	fd = open(blobmsg_data(tb[RPC_F_RW_PATH]), open_mode, mode);
 	umask(prev_mode);
 	if (fd < 0)
 		return rpc_errno_status();
