@@ -241,7 +241,7 @@ rpc_session_to_blob(struct rpc_session *ses, struct blob_buf *buf, bool acls)
 
 static void
 rpc_session_dump(struct rpc_session *ses, struct ubus_context *ctx,
-                 struct ubus_request_data *req)
+		   struct ubus_request_data *req)
 {	
 	DEBUG("session.dump"); 
 	blob_buf_init(&buf, 0);
@@ -355,8 +355,8 @@ rpc_session_get(const char *id)
 
 static int
 rpc_handle_create(struct ubus_context *ctx, struct ubus_object *obj,
-                  struct ubus_request_data *req, const char *method,
-                  struct blob_attr *msg)
+		    struct ubus_request_data *req, const char *method,
+		    struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb;
@@ -376,8 +376,8 @@ rpc_handle_create(struct ubus_context *ctx, struct ubus_object *obj,
 
 static int
 rpc_handle_list(struct ubus_context *ctx, struct ubus_object *obj,
-                struct ubus_request_data *req, const char *method,
-                struct blob_attr *msg)
+		  struct ubus_request_data *req, const char *method,
+		  struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb;
@@ -408,7 +408,7 @@ uh_id_len(const char *str)
 
 static int
 rpc_session_grant(struct rpc_session *ses,
-                  const char *scope, const char *object, const char *function)
+		    const char *scope, const char *object, const char *function)
 {
 	struct rpc_session_acl *acl;
 	struct rpc_session_acl_scope *acl_scope;
@@ -430,7 +430,7 @@ rpc_session_grant(struct rpc_session *ses,
 
 	if (!acl_scope) {
 		acl_scope = calloc_a(sizeof(*acl_scope),
-		                     &new_scope, strlen(scope) + 1);
+					&new_scope, strlen(scope) + 1);
 
 		if (!acl_scope)
 			return UBUS_STATUS_UNKNOWN_ERROR;
@@ -459,7 +459,7 @@ rpc_session_grant(struct rpc_session *ses,
 
 static int
 rpc_session_revoke(struct rpc_session *ses,
-                   const char *scope, const char *object, const char *function)
+		     const char *scope, const char *object, const char *function)
 {
 	struct rpc_session_acl *acl, *next;
 	struct rpc_session_acl_scope *acl_scope;
@@ -513,8 +513,8 @@ rpc_session_revoke(struct rpc_session *ses,
 
 static int
 rpc_handle_acl(struct ubus_context *ctx, struct ubus_object *obj,
-               struct ubus_request_data *req, const char *method,
-               struct blob_attr *msg)
+		 struct ubus_request_data *req, const char *method,
+		 struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb[__RPC_SA_MAX];
@@ -525,7 +525,7 @@ rpc_handle_acl(struct ubus_context *ctx, struct ubus_object *obj,
 
 	DEBUG("session.acl\n"); 
 	int (*cb)(struct rpc_session *ses,
-	          const char *scope, const char *object, const char *function);
+		   const char *scope, const char *object, const char *function);
 
 	blobmsg_parse(acl_policy, __RPC_SA_MAX, tb, blob_data(msg), blob_len(msg));
 
@@ -575,7 +575,7 @@ rpc_handle_acl(struct ubus_context *ctx, struct ubus_object *obj,
 
 static bool
 rpc_session_acl_allowed(struct rpc_session *ses, const char *scope,
-                        const char *obj, const char *fun)
+			   const char *obj, const char *fun)
 {
 	struct rpc_session_acl *acl;
 	struct rpc_session_acl_scope *acl_scope;
@@ -592,8 +592,8 @@ rpc_session_acl_allowed(struct rpc_session *ses, const char *scope,
 
 static int
 rpc_handle_access(struct ubus_context *ctx, struct ubus_object *obj,
-                  struct ubus_request_data *req, const char *method,
-                  struct blob_attr *msg)
+		    struct ubus_request_data *req, const char *method,
+		    struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb[__RPC_SP_MAX];
@@ -619,8 +619,8 @@ rpc_handle_access(struct ubus_context *ctx, struct ubus_object *obj,
 			scope = blobmsg_data(tb[RPC_SP_SCOPE]);
 
 		allow = rpc_session_acl_allowed(ses, scope,
-		                                blobmsg_data(tb[RPC_SP_OBJECT]),
-		                                blobmsg_data(tb[RPC_SP_FUNCTION]));
+						    blobmsg_data(tb[RPC_SP_OBJECT]),
+						    blobmsg_data(tb[RPC_SP_FUNCTION]));
 
 		blobmsg_add_u8(&buf, "access", allow);
 	}
@@ -658,8 +658,8 @@ rpc_session_set(struct rpc_session *ses, const char *key, struct blob_attr *val)
 
 static int
 rpc_handle_set(struct ubus_context *ctx, struct ubus_object *obj,
-               struct ubus_request_data *req, const char *method,
-               struct blob_attr *msg)
+		 struct ubus_request_data *req, const char *method,
+		 struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb[__RPC_SS_MAX];
@@ -688,8 +688,8 @@ rpc_handle_set(struct ubus_context *ctx, struct ubus_object *obj,
 
 static int
 rpc_handle_get(struct ubus_context *ctx, struct ubus_object *obj,
-               struct ubus_request_data *req, const char *method,
-               struct blob_attr *msg)
+		 struct ubus_request_data *req, const char *method,
+		 struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct rpc_session_data *data;
@@ -737,8 +737,8 @@ rpc_handle_get(struct ubus_context *ctx, struct ubus_object *obj,
 
 static int
 rpc_handle_unset(struct ubus_context *ctx, struct ubus_object *obj,
-                 struct ubus_request_data *req, const char *method,
-                 struct blob_attr *msg)
+		   struct ubus_request_data *req, const char *method,
+		   struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct rpc_session_data *data, *ndata;
@@ -779,8 +779,8 @@ rpc_handle_unset(struct ubus_context *ctx, struct ubus_object *obj,
 
 static int
 rpc_handle_destroy(struct ubus_context *ctx, struct ubus_object *obj,
-                   struct ubus_request_data *req, const char *method,
-                   struct blob_attr *msg)
+		     struct ubus_request_data *req, const char *method,
+		     struct blob_attr *msg)
 {
 	struct rpc_session *ses;
 	struct blob_attr *tb;
@@ -842,7 +842,7 @@ rpc_login_test_password(const char *hash, const char *password)
 
 static struct uci_section *
 rpc_login_test_login(struct uci_context *uci,
-                     const char *username, const char *password)
+			const char *username, const char *password)
 {
 	struct uci_package *p = NULL;
 	struct uci_section *s;
@@ -901,7 +901,7 @@ rpc_login_test_login(struct uci_context *uci,
 
 static bool
 rpc_login_test_permission(struct uci_section *s,
-                          const char *perm, const char *group)
+			     const char *perm, const char *group)
 {
 	const char *p;
 	struct uci_option *o;
@@ -959,8 +959,8 @@ rpc_login_test_permission(struct uci_section *s,
 
 static void
 rpc_login_setup_acl_scope(struct rpc_session *ses,
-                          struct blob_attr *acl_perm,
-                          struct blob_attr *acl_scope)
+			     struct blob_attr *acl_perm,
+			     struct blob_attr *acl_scope)
 {
 	struct blob_attr *acl_obj, *acl_func;
 	int rem, rem2;
@@ -986,8 +986,8 @@ rpc_login_setup_acl_scope(struct rpc_session *ses,
 					continue;
 
 				rpc_session_grant(ses, blobmsg_name(acl_scope),
-				                       blobmsg_name(acl_obj),
-				                       blobmsg_data(acl_func));
+							  blobmsg_name(acl_obj),
+							  blobmsg_data(acl_func));
 			}
 		}
 	}
@@ -1008,15 +1008,15 @@ rpc_login_setup_acl_scope(struct rpc_session *ses,
 				continue;
 
 			rpc_session_grant(ses, blobmsg_name(acl_scope),
-			                       blobmsg_data(acl_obj),
-			                       blobmsg_name(acl_perm));
+						  blobmsg_data(acl_obj),
+						  blobmsg_name(acl_perm));
 		}
 	}
 }
 
 static void
 rpc_login_setup_acl_file(struct rpc_session *ses, struct uci_section *login,
-                         const char *path)
+			    const char *path)
 {
 	struct blob_buf acl = { 0 };
 	struct blob_attr *acl_group, *acl_perm, *acl_scope;
@@ -1046,7 +1046,7 @@ rpc_login_setup_acl_file(struct rpc_session *ses, struct uci_section *login,
 			 * "read" or "write" permission in the given access group.
 			 */
 			if (!rpc_login_test_permission(login, blobmsg_name(acl_perm),
-			                                      blobmsg_name(acl_group)))
+								   blobmsg_name(acl_group)))
 				continue;
 
 			/* Iterate scope objects within the permission object */
@@ -1075,8 +1075,8 @@ rpc_login_setup_acl_file(struct rpc_session *ses, struct uci_section *login,
 				 * <scope>/<object>/<function> tuple defined in a group.
 				 */
 				rpc_session_grant(ses, "access-group",
-				                       blobmsg_name(acl_group),
-				                       blobmsg_name(acl_perm));
+							  blobmsg_name(acl_group),
+							  blobmsg_name(acl_perm));
 			}
 		}
 	}
@@ -1102,8 +1102,8 @@ rpc_login_setup_acls(struct rpc_session *ses, struct uci_section *login)
 
 static int
 rpc_handle_login(struct ubus_context *ctx, struct ubus_object *obj,
-                 struct ubus_request_data *req, const char *method,
-                 struct blob_attr *msg)
+		   struct ubus_request_data *req, const char *method,
+		   struct blob_attr *msg)
 {
 	struct uci_context *uci = NULL;
 	struct uci_section *login;
@@ -1128,7 +1128,7 @@ rpc_handle_login(struct ubus_context *ctx, struct ubus_object *obj,
 	}
 
 	login = rpc_login_test_login(uci, blobmsg_get_string(tb[RPC_L_USERNAME]),
-	                                  blobmsg_get_string(tb[RPC_L_PASSWORD]));
+					      blobmsg_get_string(tb[RPC_L_PASSWORD]));
 
 	if (!login) {
 		rv = UBUS_STATUS_PERMISSION_DENIED;
@@ -1253,7 +1253,7 @@ rpc_session_from_blob(struct uci_context *uci, struct blob_attr *attr)
 	struct blob_attr *tb[__RPC_DUMP_MAX], *data;
 
 	blobmsg_parse(dump_policy, __RPC_DUMP_MAX, tb,
-	              blob_data(attr), blob_len(attr));
+			blob_data(attr), blob_len(attr));
 
 	for (i = 0; i < __RPC_DUMP_MAX; i++)
 		if (!tb[i])
@@ -1340,7 +1340,7 @@ void rpc_session_api_destroy(void){
 
 
 bool rpc_session_access(const char *sid, const char *scope,
-                        const char *object, const char *function)
+			   const char *object, const char *function)
 {
 	struct rpc_session *ses = rpc_session_get(sid);
 
@@ -1407,7 +1407,7 @@ void rpc_session_thaw(void)
 			continue;
 
 		snprintf(path, sizeof(path) - 1,
-		         RPC_SESSION_DIRECTORY "/%s", e->d_name);
+			  RPC_SESSION_DIRECTORY "/%s", e->d_name);
 
 		attr = rpc_blob_from_file(path);
 
@@ -1423,3 +1423,23 @@ void rpc_session_thaw(void)
 
 	uci_free_context(uci);
 }
+
+const char *rpc_session_get_username(struct blob_attr *sid)
+{
+	struct rpc_session *ses;
+	struct rpc_session_data *data;
+
+	if (!sid)
+		return NULL;
+
+	ses = rpc_session_get(blobmsg_get_string(sid));
+	if (!ses)
+		return "";
+
+	data = avl_find_element(&ses->data, "username", data, avl);
+	if (!data)
+		return "";
+
+	return blobmsg_get_string(data->attr);
+}
+

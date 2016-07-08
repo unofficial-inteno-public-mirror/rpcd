@@ -26,6 +26,8 @@
 #include <rpcd/exec.h>
 #include <rpcd/session.h>
 
+#define ACCESS_PREFIX "_access_"
+
 static struct blob_buf buf;
 static struct uci_context *cursor;
 static struct uloop_timeout apply_timer;
@@ -224,6 +226,58 @@ rpc_uci_set_savedir(struct blob_attr *sid)
 	         RPC_UCI_SAVEDIR_PREFIX "%s", blobmsg_get_string(sid));
 
 	uci_set_savedir(cursor, path);
+}
+
+static bool rpc_uci_option_username_in_list(const char *username, struct uci_option *o)
+{
+	struct uci_element *e;
+
+	switch (o->type) {
+	case UCI_TYPE_STRING:
+	        return !strcmp(username, o->v.string);
+	        break;
+
+	case UCI_TYPE_LIST:
+	        uci_foreach_element(&o->v.list, e)
+	                if (!strcmp(username, e->name))
+	                        return true;
+	        return false;
+
+	default:
+	        break;
+	}
+
+	return false;
+}
+
+static bool rpc_uci_section_read_access(const char *username, struct uci_section *s)
+{
+	struct uci_element *e;
+	// NULL username = don't do checking
+	if (!username)
+	        return true;
+
+	uci_foreach_element(&s->options, e)
+	        if (!strcmp(ACCESS_PREFIX "r", e->name))
+	                return rpc_uci_option_username_in_list(username, uci_to_option(e));
+
+	// there was no access list, allow access
+	return true;
+}
+
+static bool rpc_uci_option_read_access(const char *username, struct uci_option *o)
+{
+	// NULL username = don't do checking
+	if (!username)
+	        return true;
+
+	if (!strncmp(ACCESS_PREFIX, o->e.name, (sizeof ACCESS_PREFIX) - 1)) {
+	        // access list can only be seen by those in it
+	        return rpc_uci_option_username_in_list(username, o);
+	}
+
+	// other options can be seen if we have read access to that section
+	return rpc_uci_section_read_access(username, o->section);
 }
 
 /*
@@ -433,7 +487,7 @@ rpc_uci_match_section(struct uci_section *s,
  *  2) If the uci_option is of type string, put its value directly into the blob
  *     buffer.
  */
-static void
+static int
 rpc_uci_dump_option(struct uci_option *o, const char *name)
 {
 	void *c;
@@ -457,6 +511,8 @@ rpc_uci_dump_option(struct uci_option *o, const char *name)
 	default:
 		break;
 	}
+
+	return 1;
 }
 
 /*
@@ -467,12 +523,16 @@ rpc_uci_dump_option(struct uci_option *o, const char *name)
  * Adds three special keys ".anonymous", ".type" and ".name" which specify the
  * corresponding section properties.
  */
-static void
-rpc_uci_dump_section(struct uci_section *s, const char *name, int index)
+static int
+rpc_uci_dump_section(struct uci_section *s, const char *name, int index, const char *username)
 {
 	void *c;
 	struct uci_option *o;
 	struct uci_element *e;
+	int count = 0;
+
+	if (!rpc_uci_section_read_access(username, s))
+		return 0;
 
 	c = blobmsg_open_table(&buf, name);
 
@@ -486,10 +546,11 @@ rpc_uci_dump_section(struct uci_section *s, const char *name, int index)
 	uci_foreach_element(&s->options, e)
 	{
 		o = uci_to_option(e);
-		rpc_uci_dump_option(o, o->e.name);
+		count += rpc_uci_dump_option(o, o->e.name);
 	}
 
 	blobmsg_close_table(&buf, c);
+	return count;
 }
 
 /*
@@ -500,13 +561,14 @@ rpc_uci_dump_section(struct uci_section *s, const char *name, int index)
  * Only dumps sections matching the given "type" and "matches", see explaination
  * of rpc_uci_match_section() for details.
  */
-static void
+static int
 rpc_uci_dump_package(struct uci_package *p, const char *name,
-                     struct blob_attr *type, struct blob_attr *matches)
+                     struct blob_attr *type, struct blob_attr *matches, const char *username)
 {
 	void *c;
 	struct uci_element *e;
 	int i = -1;
+	int count = 0;
 
 	c = blobmsg_open_table(&buf, name);
 
@@ -517,10 +579,12 @@ rpc_uci_dump_package(struct uci_package *p, const char *name,
 		if (!rpc_uci_match_section(uci_to_section(e), type, matches))
 			continue;
 
-		rpc_uci_dump_section(uci_to_section(e), e->name, i);
+		count += rpc_uci_dump_section(uci_to_section(e), e->name, i, username);
 	}
 
 	blobmsg_close_table(&buf, c);
+
+	return count;
 }
 
 
@@ -531,6 +595,8 @@ rpc_uci_getcommon(struct ubus_context *ctx, struct ubus_request_data *req,
 	struct blob_attr *tb[__RPC_G_MAX];
 	struct uci_package *p = NULL;
 	struct uci_ptr ptr = { 0 };
+	const char *username;
+	int count;
 
 	blobmsg_parse(rpc_uci_get_policy, __RPC_G_MAX, tb,
 	              blob_data(msg), blob_len(msg));
@@ -562,17 +628,38 @@ rpc_uci_getcommon(struct ubus_context *ctx, struct ubus_request_data *req,
 
 	blob_buf_init(&buf, 0);
 
+	username = rpc_session_get_username(tb[RPC_G_SESSION]);
+	fprintf(stderr, "got username for session, %s\n", username);
+
 	switch (ptr.last->type)
 	{
 	case UCI_TYPE_PACKAGE:
-		rpc_uci_dump_package(ptr.p, "values", tb[RPC_G_TYPE], tb[RPC_G_MATCH]);
+		// pass in username so dump can skip sections which are not allowed
+		count = rpc_uci_dump_package(ptr.p, "values", tb[RPC_G_TYPE], tb[RPC_G_MATCH], username);
+		fprintf(stderr, "have %d sections\n", count);
 		break;
 
 	case UCI_TYPE_SECTION:
-		rpc_uci_dump_section(ptr.s, "values", -1);
+		count = rpc_uci_dump_section(ptr.s, "values", -1, username);
+
+		if (!count) {
+			// section skipped due to access, behave as if no such section
+			blob_buf_free(&buf);
+			uci_unload(cursor, p);
+			return UBUS_STATUS_OK;
+		}
+
 		break;
 
 	case UCI_TYPE_OPTION:
+		// option skipped due to access, behave as if no such option
+		if (!rpc_uci_option_read_access(username, ptr.o)) {
+			fprintf(stderr, "hiding option\n");
+			blob_buf_free(&buf);
+			uci_unload(cursor, p);
+			return UBUS_STATUS_OK;
+		}
+
 		rpc_uci_dump_option(ptr.o, "value");
 		break;
 

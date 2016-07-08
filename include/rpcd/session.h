@@ -82,4 +82,6 @@ void rpc_session_destroy_cb(struct rpc_session_cb *cb);
 void rpc_session_freeze(void);
 void rpc_session_thaw(void);
 
+const char *rpc_session_get_username(struct blob_attr *sid);
+
 #endif
